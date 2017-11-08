@@ -1,4 +1,3 @@
-from .resource import Resource
 from .session import Session as AsyncPluct
 
 # Used to mock validate method on tests

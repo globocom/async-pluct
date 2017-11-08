@@ -2,7 +2,7 @@ try:
     from tornado.httpclient import AsyncHTTPClient
 
     http_client = AsyncHTTPClient
-except:
+except ImportError:
     from aiohttp import ClientSession
 
     class AioHttpClient(ClientSession):

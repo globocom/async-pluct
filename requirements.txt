@@ -1,12 +1,10 @@
 aiohttp==2.3.2
 async-timeout==2.0.0
-asynctest==0.11.1
 chardet==3.0.4
 idna==2.6
 jsonpointer==1.14
 jsonschema==2.6.0
 multidict==3.3.2
-nose==1.3.7
 uritemplate==3.0.0
 urllib3==1.22
 yarl==0.13.0
