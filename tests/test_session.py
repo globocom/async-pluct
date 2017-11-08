@@ -2,6 +2,8 @@ import json
 
 from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
 from aiohttp import web
+from yarl import URL
+from aiohttp import ClientResponse, ClientResponseError
 
 from asynctest import patch, Mock, CoroutineMock, ANY
 from async_pluct.session import Session
@@ -36,7 +38,8 @@ class SessionRequestsTestCase(AioHTTPTestCase):
         return web.Application()
 
     async def setUpAsync(self):
-        self.response = CoroutineMock()
+        self.response = ClientResponse('get', URL('/'))
+        self.response.status = 200
         self.mock_client = Mock()
         self.mock_client.fetch = CoroutineMock(return_value=self.response)
 
@@ -83,8 +86,9 @@ class SessionRequestsTestCase(AioHTTPTestCase):
 
     @unittest_run_loop
     async def test_checks_for_bad_response(self):
-        await self.session.request('/')
-        self.response.raise_for_status.assert_called_once_with()
+        self.response.status = 404
+        with self.assertRaises(ClientResponseError):
+            await self.session.request('/')
 
 
 class SessionResourceTestCase(AioHTTPTestCase):

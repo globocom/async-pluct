@@ -1,6 +1,7 @@
 import json
 
 from async_pluct.http import http_client
+from aiohttp import ClientResponse
 
 from async_pluct.resource import Resource
 from async_pluct.schema import Schema, LazySchema, get_profile_from_header
@@ -49,6 +50,7 @@ class Session(object):
 
         response = await self.client.fetch(url, **kwargs)
 
-        response.raise_for_status()
+        if isinstance(response, ClientResponse):
+            response.raise_for_status()
 
         return response
