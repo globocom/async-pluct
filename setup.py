@@ -5,7 +5,7 @@ setup(
     name='pluct',
     version='1.3.0',
     description='JSON Hyper Schema client',
-    long_description=open('README.rst').read(),
+    long_description=open('README.md').read(),
     author='Lucas Stephanou',
     author_email='domluc@gmail.com',
     url='https://github.com/lucasts/async-pluct',
@@ -22,7 +22,7 @@ setup(
     packages=find_packages(exclude=('tests.*', 'tests')),
     include_package_data=True,
     install_requires=[
-        'requests',
+        'aiohttp',
         'jsonschema',
         'jsonpointer',
     ],

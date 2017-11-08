@@ -1,3 +1,5 @@
+import json
+
 from cgi import parse_header
 from collections import UserDict
 from jsonpointer import resolve_pointer
@@ -115,10 +117,10 @@ class LazySchema(Schema):
         self._raw_schema = None
 
     @property
-    def raw_schema(self):
+    async def raw_schema(self):
         if self._raw_schema is None:
-            response = self.session.request(self.url)
-            self._raw_schema = response.json()
+            response = await self.session.request(self.url)
+            self._raw_schema = json.loads(response.body)
         return self._raw_schema
 
     def __repr__(self):

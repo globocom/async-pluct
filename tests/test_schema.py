@@ -1,7 +1,7 @@
-import asyncio
+from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
+from aiohttp import web
 
 from copy import deepcopy
-from . import AsyncTestCase
 
 from unittest.mock import Mock, patch
 from async_pluct.schema import get_profile_from_header, LazySchema, Schema
@@ -48,26 +48,32 @@ SCHEMA = {
 }
 
 
-class BaseLazySchemaTestCase(AsyncTestCase):
+class BaseLazySchemaTestCase(AioHTTPTestCase):
+
+    async def get_application(self):
+        return web.Application()
 
     HREF = '/schema'
     RAW_SCHEMA = SCHEMA
 
-    def run(self, *args, **kwargs):
+    async def run(self, *args, **kwargs):
         self.session = Session()
         self.schema = LazySchema(self.HREF, session=self.session)
 
         with patch.object(self.session, 'request') as self.request:
-            self.response = Mock()
-            self.response.json.return_value = deepcopy(self.RAW_SCHEMA)
+            self.response = CoroutineMock()
+            self.response.body.return_value = deepcopy(self.RAW_SCHEMA)
             self.request.return_value = self.response
 
             return super(BaseLazySchemaTestCase, self).run(*args, **kwargs)
 
 
-class SchemaTestCase(AsyncTestCase):
+class SchemaTestCase(AioHTTPTestCase):
 
-    def setUp(self):
+    async def get_application(self):
+        return web.Application()
+
+    async def setUpAsync(self):
         self.session = Session()
 
         self.url = 'http://app.com/myschema'
@@ -91,41 +97,52 @@ class SchemaTestCase(AsyncTestCase):
     def test_schema_url(self):
         self.assertEqual(self.url, self.schema.url)
 
-    def test_session(self):
+    @unittest_run_loop
+    async def test_session(self):
         self.assertIs(self.session, self.schema.session)
 
 
 class LazySchemaTestCase(BaseLazySchemaTestCase):
 
-    def test_loads_schema_once_accessing_data(self):
+    @unittest_run_loop
+    async def test_loads_schema_once_accessing_data(self):
         self.assertEqual(self.schema.data['title'], SCHEMA['title'])
         self.assertEqual(self.schema.data['title'], SCHEMA['title'])
 
         self.request.assert_called_once_with('/schema')
 
-    def test_loads_schema_once_accessing_raw_schema(self):
+    @unittest_run_loop
+    async def test_loads_schema_once_accessing_raw_schema(self):
         self.assertEqual(self.schema.raw_schema['title'], SCHEMA['title'])
         self.assertEqual(self.schema.raw_schema['title'], SCHEMA['title'])
 
         self.request.assert_called_once_with('/schema')
 
-    def test_url(self):
+    @unittest_run_loop
+    async def test_url(self):
         self.assertEqual(self.schema.url, '/schema')
 
-    def test_session(self):
+    @unittest_run_loop
+    async def test_session(self):
         self.assertIs(self.session, self.schema.session)
 
 
-class CircularSchemaTestCase(AsyncTestCase):
+class CircularSchemaTestCase(AioHTTPTestCase):
 
-    def test_uses_original_ref_on_representation(self):
+    async def get_application(self):
+        return web.Application()
+
+    async def setUpAsync(self):
+        self.session = Session()
+
+    @unittest_run_loop
+    async def test_uses_original_ref_on_representation(self):
         raw_schema = {
             'properties': {
                 'inner': {'$ref': '/schema'},
             }
         }
-        session = Session()
-        schema = Schema('/schema', raw_schema=raw_schema, session=session)
+        schema = Schema('/schema', raw_schema=raw_schema, session=self.session)
         self.assertEqual(repr(schema), repr(raw_schema))
 
 
@@ -138,25 +155,32 @@ class LazyCircularSchemaTestCase(BaseLazySchemaTestCase):
         }
     }
 
-    def test_uses_original_ref_on_representation(self):
+    @unittest_run_loop
+    async def test_uses_original_ref_on_representation(self):
         self.assertEqual(repr(self.schema), repr({'$ref': self.HREF}))
 
 
-class GetProfileFromHeaderTestCase(AsyncTestCase):
+class GetProfileFromHeaderTestCase(AioHTTPTestCase):
+
+    async def get_application(self):
+        return web.Application()
 
     SCHEMA_URL = 'http://a.com/schema'
 
-    def test_return_none_for_missing_content_type(self):
+    @unittest_run_loop
+    async def test_return_none_for_missing_content_type(self):
         headers = {}
         url = get_profile_from_header(headers)
         self.assertIs(url, None)
 
-    def test_return_none_for_missing_profile(self):
+    @unittest_run_loop
+    async def test_return_none_for_missing_profile(self):
         headers = {'content-type': 'application/json'}
         url = get_profile_from_header(headers)
         self.assertIs(url, None)
 
-    def test_should_read_schema_from_profile(self):
+    @unittest_run_loop
+    async def test_should_read_schema_from_profile(self):
         headers = {
             'content-type': (
                 'application/json; charset=utf-8; profile=%s'
@@ -165,7 +189,8 @@ class GetProfileFromHeaderTestCase(AsyncTestCase):
         url = get_profile_from_header(headers)
         self.assertEqual(url, self.SCHEMA_URL)
 
-    def test_should_parse_schema_from_quoted_profile(self):
+    @unittest_run_loop
+    async def test_should_parse_schema_from_quoted_profile(self):
         headers = {
             'content-type': (
                 'application/json; charset=utf-8; profile="%s"'
@@ -175,9 +200,12 @@ class GetProfileFromHeaderTestCase(AsyncTestCase):
         self.assertEqual(url, self.SCHEMA_URL)
 
 
-class GetLinkTestCase(AsyncTestCase):
+class GetLinkTestCase(AioHTTPTestCase):
 
-    def setUp(self):
+    async def get_application(self):
+        return web.Application()
+
+    async def setUpAsync(self):
         self.url = '/'
         self.session = Session()
         self.schema = Schema(
@@ -192,9 +220,12 @@ class GetLinkTestCase(AsyncTestCase):
         self.assertIs(link, None)
 
 
-class SchemaPointerTestCase(AsyncTestCase):
+class SchemaPointerTestCase(AioHTTPTestCase):
 
-    def setUp(self):
+    async def get_application(self):
+        return web.Application()
+
+    async def setUpAsync(self):
         self.session = Session()
         self.url = 'http://example.org/schema'
         self.pointer = ''
@@ -288,26 +319,33 @@ class SchemaStoreMixinTestCase(object):
 
     SCHEMA_URL = 'http://a.com/schema'
 
-    def setUp(self):
+    async def get_application(self):
+        return web.Application()
+
+    async def setUpAsync(self):
         self.session = Session()
 
-    def test_reuses_schema_for_same_href(self):
+    @unittest_run_loop
+    async def test_reuses_schema_for_same_href(self):
         schema1 = self.create_schema(self.SCHEMA_URL)
         schema2 = self.create_schema(self.SCHEMA_URL)
         self.assertIs(schema1, schema2)
 
-    def test_doesnt_reuse_schema_with_empty_url(self):
+    @unittest_run_loop
+    async def test_doesnt_reuse_schema_with_empty_url(self):
         schema1 = self.create_schema('')
         schema2 = self.create_schema('')
         self.assertIs(schema1, schema2)
 
-    def test_reuses_schema_for_different_pointers(self):
+    @unittest_run_loop
+    async def test_reuses_schema_for_different_pointers(self):
         schema1 = self.create_schema(self.SCHEMA_URL)
         schema2 = self.create_schema(
             self.SCHEMA_URL + '#/pointer')
         self.assertIs(schema1, schema2)
 
-    def test_does_not_reuse_schema_on_different_sessions(self):
+    @unittest_run_loop
+    async def test_does_not_reuse_schema_on_different_sessions(self):
         other_session = Session()
 
         schema1 = self.create_schema(self.SCHEMA_URL)
@@ -317,7 +355,7 @@ class SchemaStoreMixinTestCase(object):
         self.assertIsNot(schema1, schema2)
 
 
-class SchemaStoreTestCase(SchemaStoreMixinTestCase, AsyncTestCase):
+class SchemaStoreTestCase(SchemaStoreMixinTestCase, AioHTTPTestCase):
 
     def create_schema(self, url, session=None):
         if session is None:
@@ -325,7 +363,7 @@ class SchemaStoreTestCase(SchemaStoreMixinTestCase, AsyncTestCase):
         return Schema(self.SCHEMA_URL, raw_schema={}, session=session)
 
 
-class LazySchemaStoreTestCase(SchemaStoreMixinTestCase, AsyncTestCase):
+class LazySchemaStoreTestCase(SchemaStoreMixinTestCase, AioHTTPTestCase):
 
     def create_schema(self, url, session=None):
         if session is None:

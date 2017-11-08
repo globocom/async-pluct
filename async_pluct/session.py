@@ -1,3 +1,5 @@
+import json
+
 from async_pluct.http import http_client
 
 from async_pluct.resource import Resource
@@ -11,7 +13,6 @@ class Session(object):
         self.store = {}
 
         if client is None:
-            print(http_client)
             self.client = http_client()
         else:
             self.client = client
@@ -20,8 +21,6 @@ class Session(object):
         response = await self.request(url, **kwargs)
         schema = None
 
-        print(response.headers)
-
         schema_url = get_profile_from_header(response.headers)
         if schema_url is not None:
             schema = LazySchema(href=schema_url, session=self)
@@ -29,8 +28,9 @@ class Session(object):
         return Resource.from_response(
             response=response, session=self, schema=schema)
 
-    def schema(self, url, **kwargs):
-        data = self.request(url, **kwargs).json()
+    async def schema(self, url, **kwargs):
+        response = await self.request(url, **kwargs)
+        data = json.loads(response.body)
         return Schema(url, raw_schema=data, session=self)
 
     async def request(self, url, **kwargs):
@@ -38,16 +38,16 @@ class Session(object):
         if self.timeout is not None:
             kwargs.setdefault('request_timeout', self.timeout)
 
+        if 'timeout' in kwargs:
+            timeout = kwargs.pop('timeout')
+            kwargs.setdefault('request_timeout', timeout)
+
         kwargs.setdefault('headers', {})
         kwargs['headers'].setdefault('content-type', 'application/json')
 
         kwargs.setdefault('method', 'get')
 
-        print('meu ovo 4')
-
-        response = await self.client.fetch(url)
-        print('meu ovo 5')
-        print('xxx: ',response)
+        response = await self.client.fetch(url, **kwargs)
 
         response.raise_for_status()
 

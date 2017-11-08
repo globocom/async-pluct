@@ -30,8 +30,9 @@ class Resource(object):
         self.response = response
         self.headers = headers
 
-    def session_request_json(self, url):
-        return self.session.request(url).json()
+    async def session_request_json(self, url):
+        response = await self.session.request(url)
+        return json.loads(response.body)
 
     def is_valid(self):
         handlers = {'https': self.session_request_json,
@@ -44,7 +45,7 @@ class Resource(object):
             return False
         return True
 
-    def rel(self, name, **kwargs):
+    async def rel(self, name, **kwargs):
         link = self.schema.get_link(name)
         method = link.get('method', 'get').lower()
         href = link.get('href', '')
@@ -78,7 +79,7 @@ class Resource(object):
 
             kwargs['headers'] = headers
 
-        return self.session.resource(uri, method=method, **kwargs)
+        return await self.session.resource(uri, method=method, **kwargs)
 
     def _get_content_type_for_resource(self, resource):
         response = resource.response

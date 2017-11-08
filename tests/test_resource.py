@@ -1,16 +1,23 @@
-from unittest import TestCase
+import json
+
+from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
+from aiohttp import web
+
 from jsonschema import RefResolver
-from unittest.mock import patch, Mock
+from asynctest import patch, Mock
 
 from async_pluct.resource import Resource, ObjectResource, ArrayResource
 from async_pluct.session import Session
 from async_pluct.schema import Schema
 
 
-class BaseTestCase(TestCase):
+class BaseTestCase(AioHTTPTestCase):
 
-    def setUp(self):
+    async def setUpAsync(self):
         self.session = Session()
+
+    async def get_application(self):
+        return web.Application()
 
     def resource_from_data(self, url, data=None, schema=None, response=None):
         resource = Resource.from_data(
@@ -34,8 +41,8 @@ class ResourceInitTestCase(BaseTestCase):
 
 class ResourceTestCase(BaseTestCase):
 
-    def setUp(self):
-        super(ResourceTestCase, self).setUp()
+    async def setUpAsync(self):
+        await super().setUpAsync()
 
         self.data = {
             "name": "repos",
@@ -120,26 +127,29 @@ class ResourceTestCase(BaseTestCase):
     def test_resource_should_be_instance_of_schema(self):
         self.assertIsInstance(self.result, Resource)
 
-    def test_is_valid_call_validate_with_resolver_instance(self):
-        with patch('async_pluct.resource.validate') as mock_validate:
-            self.result.is_valid()
-            self.assertTrue(mock_validate.called)
+    @patch('async_pluct.resources.validate')
+    @unittest_run_loop
+    async def test_is_valid_call_validate_with_resolver_instance(self, mock_validate):
+        self.result.is_valid()
+        self.assertTrue(mock_validate.called)
 
-            resolver = mock_validate.call_args[-1]['resolver']
-            self.assertIsInstance(resolver, RefResolver)
+        resolver = mock_validate.call_args[-1]['resolver']
+        self.assertIsInstance(resolver, RefResolver)
 
-            http_handler, https_handler = list(resolver.handlers.values())
-            self.assertEqual(http_handler, self.result.session_request_json)
-            self.assertEqual(https_handler, self.result.session_request_json)
+        http_handler, https_handler = list(resolver.handlers.values())
+        self.assertEqual(http_handler, self.result.session_request_json)
+        self.assertEqual(https_handler, self.result.session_request_json)
 
-    def test_session_request_json(self):
+    @unittest_run_loop
+    async def test_session_request_json(self):
         mock_request_return = Mock()
+        mock_request_return.body = json.dumps({'fake': 'json'})
         with patch.object(self.result.session, 'request') as mock_request:
             mock_request.return_value = mock_request_return
 
-            self.result.session_request_json(self.url)
+            result = await self.result.session_request_json(self.url)
             self.assertTrue(mock_request.called)
-            self.assertTrue(mock_request_return.json.called)
+            self.assertEqual(result, {'fake': 'json'})
 
 
 class ParseResourceTestCase(BaseTestCase):
@@ -245,21 +255,24 @@ class FromResponseTestCase(BaseTestCase):
         }
         self.schema = Schema('/', raw_schema={}, session=self.session)
 
-    def test_should_return_resource_from_response(self):
+    @unittest_run_loop
+    async def test_should_return_resource_from_response(self):
         self._response.json.return_value = {}
         returned_resource = self.resource_from_response(
             self._response, schema=self.schema)
         self.assertEqual(returned_resource.url, 'http://example.com')
         self.assertEqual(returned_resource.data, {})
 
-    def test_should_return_resource_from_response_with_no_json_data(self):
+    @unittest_run_loop
+    async def test_should_return_resource_from_response_with_no_json_data(self):
         self._response.json = Mock(side_effect=ValueError())
         returned_resource = self.resource_from_response(
             self._response, schema=self.schema)
         self.assertEqual(returned_resource.url, 'http://example.com')
         self.assertEqual(returned_resource.data, {})
 
-    def test_should_return_resource_from_response_with_response_data(self):
+    @unittest_run_loop
+    async def test_should_return_resource_from_response_with_response_data(self):
         self._response.json.return_value = {}
         returned_resource = self.resource_from_response(
             self._response, schema=self.schema)
@@ -267,7 +280,8 @@ class FromResponseTestCase(BaseTestCase):
         self.assertEqual(returned_resource.response.headers,
                          self._response.headers)
 
-    def test_resource_with_an_array_without_schema(self):
+    @unittest_run_loop
+    async def test_resource_with_an_array_without_schema(self):
         data = {
             'units': [
                 {'name': 'someunit'}
@@ -289,7 +303,8 @@ class FromResponseTestCase(BaseTestCase):
 
 class ResourceFromDataTestCase(BaseTestCase):
 
-    def test_should_create_array_resource_from_list(self):
+    @unittest_run_loop
+    async def test_should_create_array_resource_from_list(self):
         data = []
         resource = self.resource_from_data('/', data=data)
         self.assertIsInstance(resource, ArrayResource)
@@ -298,7 +313,8 @@ class ResourceFromDataTestCase(BaseTestCase):
         expected = "<Pluct ArrayResource %s>" % resource.data
         self.assertEqual(expected, str(resource))
 
-    def test_should_create_object_resource_from_dict(self):
+    @unittest_run_loop
+    async def test_should_create_object_resource_from_dict(self):
         data = {}
         resource = self.resource_from_data('/', data=data)
         self.assertIsInstance(resource, ObjectResource)

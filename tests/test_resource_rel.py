@@ -1,7 +1,9 @@
+from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
+from aiohttp import web
+from asynctest import patch, Mock
+
 import json
 
-from unittest import TestCase
-from unittest.mock import patch, Mock
 from copy import deepcopy
 
 from async_pluct.resource import Resource
@@ -9,9 +11,9 @@ from async_pluct.schema import Schema
 from async_pluct.session import Session
 
 
-class ResourceRelTestCase(TestCase):
+class ResourceRelTestCase(AioHTTPTestCase):
 
-    def setUp(self):
+    async def setUpAsync(self):
         raw_schema = {
             'links': [
                 {
@@ -65,11 +67,15 @@ class ResourceRelTestCase(TestCase):
         self.request_patcher = patch.object(self.session, 'request')
         self.request = self.request_patcher.start()
 
-    def tearDown(self):
+    async def get_application(self):
+        return web.Application()
+
+    async def asyncTearDown(self):
         self.request_patcher.stop()
 
-    def test_rel_follows_content_type_profile(self):
-        self.resource2.rel('create', data=self.resource2)
+    @unittest_run_loop
+    async def test_rel_follows_content_type_profile(self):
+        await self.resource2.rel('create', data=self.resource2)
         self.request.assert_called_with(
             'http://much.url.com/root',
             method='post',
@@ -77,12 +83,14 @@ class ResourceRelTestCase(TestCase):
             headers=self.response.headers
         )
 
-    def test_get_content_type_for_resource_default(self):
+    @unittest_run_loop
+    async def test_get_content_type_for_resource_default(self):
         content_type = self.resource._get_content_type_for_resource(
             self.resource)
         self.assertEqual(content_type, 'application/json; profile=/schema')
 
-    def test_get_content_type_for_resource_with_response(self):
+    @unittest_run_loop
+    async def test_get_content_type_for_resource_with_response(self):
         content_type = self.resource2._get_content_type_for_resource(
             self.resource2)
         self.assertEqual(content_type, self.response.headers['content-type'])
@@ -101,8 +109,9 @@ class ResourceRelTestCase(TestCase):
     def test_has_rel_detects_unexistent_link(self):
         self.assertFalse(self.resource.has_rel('foo_bar'))
 
-    def test_delegates_request_to_session(self):
-        self.resource.rel('create', data=self.resource)
+    @unittest_run_loop
+    async def test_delegates_request_to_session(self):
+        await self.resource.rel('create', data=self.resource)
         self.request.assert_called_with(
             'http://much.url.com/root',
             method='post',
@@ -110,8 +119,9 @@ class ResourceRelTestCase(TestCase):
             headers={'content-type': 'application/json; profile=/schema'}
         )
 
-    def test_accepts_extra_parameters(self):
-        self.resource.rel('create', data=self.resource, timeout=333)
+    @unittest_run_loop
+    async def test_accepts_extra_parameters(self):
+        await self.resource.rel('create', data=self.resource, timeout=333)
         self.request.assert_called_with(
             'http://much.url.com/root',
             method='post',
@@ -120,9 +130,10 @@ class ResourceRelTestCase(TestCase):
             timeout=333
         )
 
-    def test_accepts_dict(self):
+    @unittest_run_loop
+    async def test_accepts_dict(self):
         resource = {'name': 'Testing'}
-        self.resource.rel('create', data=resource)
+        await self.resource.rel('create', data=resource)
         self.request.assert_called_with(
             'http://much.url.com/root',
             method='post',
@@ -130,32 +141,37 @@ class ResourceRelTestCase(TestCase):
             headers={'content-type': 'application/json'}
         )
 
-    def test_uses_get_as_default_verb(self):
-        self.resource.rel('list')
+    @unittest_run_loop
+    async def test_uses_get_as_default_verb(self):
+        await self.resource.rel('list')
         self.request.assert_called_with(
             'http://much.url.com/root', method='get'
         )
 
-    def test_expands_uri_using_resource_data(self):
-        self.resource.rel('item')
+    @unittest_run_loop
+    async def test_expands_uri_using_resource_data(self):
+        await self.resource.rel('item')
         self.request.assert_called_with(
             'http://much.url.com/root/123', method='get'
         )
 
-    def test_expands_uri_using_params(self):
-        self.resource.rel('item', params={'id': 345})
+    @unittest_run_loop
+    async def test_expands_uri_using_params(self):
+        await self.resource.rel('item', params={'id': 345})
         self.request.assert_called_with(
             'http://much.url.com/root/345', method='get', params={}
         )
 
-    def test_expands_uri_using_resource_data_and_params(self):
-        self.resource.rel('related', params={'related': 'something'})
+    @unittest_run_loop
+    async def test_expands_uri_using_resource_data_and_params(self):
+        await self.resource.rel('related', params={'related': 'something'})
         self.request.assert_called_with(
             'http://much.url.com/root/slug/something', method='get', params={}
         )
 
-    def test_extracts_expanded_params_from_the_uri(self):
-        self.resource.rel('item', params={'id': 345, 'fields': 'slug'})
+    @unittest_run_loop
+    async def test_extracts_expanded_params_from_the_uri(self):
+        await self.resource.rel('item', params={'id': 345, 'fields': 'slug'})
         self.request.assert_called_with(
             'http://much.url.com/root/345',
             method='get', params={'fields': 'slug'}
