@@ -11,4 +11,5 @@ before_script:
 install: make deps
 script: make test
 after_script:
+  - coverage xml
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
