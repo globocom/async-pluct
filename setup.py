@@ -1,14 +1,14 @@
 from setuptools import setup, find_packages
-
+from async_pluct import __version__
 
 setup(
-    name='pluct',
-    version='1.3.0',
+    name='async-pluct',
+    version=__version__,
     description='JSON Hyper Schema client',
     long_description=open('README.md').read(),
     author='Lucas Stephanou',
     author_email='domluc@gmail.com',
-    url='https://github.com/lucasts/async-pluct',
+    url='https://github.com/globocom/async-pluct',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: No Input/Output (Daemon)',
