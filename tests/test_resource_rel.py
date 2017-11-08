@@ -44,6 +44,7 @@ class ResourceRelTestCase(AioHTTPTestCase):
         self.schema = Schema('/schema', raw_schema, session=self.session)
 
         self.response = Mock()
+        self.response.body = b'{}'
         self.response.url = 'http://example.com'
 
         self.profile_url = 'http://example.com/schema'
@@ -75,6 +76,7 @@ class ResourceRelTestCase(AioHTTPTestCase):
 
     @unittest_run_loop
     async def test_rel_follows_content_type_profile(self):
+        self.request.return_value = self.response
         await self.resource2.rel('create', data=self.resource2)
         self.request.assert_called_with(
             'http://much.url.com/root',
@@ -111,6 +113,7 @@ class ResourceRelTestCase(AioHTTPTestCase):
 
     @unittest_run_loop
     async def test_delegates_request_to_session(self):
+        self.request.return_value = self.response
         await self.resource.rel('create', data=self.resource)
         self.request.assert_called_with(
             'http://much.url.com/root',
@@ -121,6 +124,7 @@ class ResourceRelTestCase(AioHTTPTestCase):
 
     @unittest_run_loop
     async def test_accepts_extra_parameters(self):
+        self.request.return_value = self.response
         await self.resource.rel('create', data=self.resource, timeout=333)
         self.request.assert_called_with(
             'http://much.url.com/root',
@@ -132,6 +136,7 @@ class ResourceRelTestCase(AioHTTPTestCase):
 
     @unittest_run_loop
     async def test_accepts_dict(self):
+        self.request.return_value = self.response
         resource = {'name': 'Testing'}
         await self.resource.rel('create', data=resource)
         self.request.assert_called_with(
@@ -143,6 +148,7 @@ class ResourceRelTestCase(AioHTTPTestCase):
 
     @unittest_run_loop
     async def test_uses_get_as_default_verb(self):
+        self.request.return_value = self.response
         await self.resource.rel('list')
         self.request.assert_called_with(
             'http://much.url.com/root', method='get'
@@ -150,6 +156,7 @@ class ResourceRelTestCase(AioHTTPTestCase):
 
     @unittest_run_loop
     async def test_expands_uri_using_resource_data(self):
+        self.request.return_value = self.response
         await self.resource.rel('item')
         self.request.assert_called_with(
             'http://much.url.com/root/123', method='get'
@@ -157,6 +164,7 @@ class ResourceRelTestCase(AioHTTPTestCase):
 
     @unittest_run_loop
     async def test_expands_uri_using_params(self):
+        self.request.return_value = self.response
         await self.resource.rel('item', params={'id': 345})
         self.request.assert_called_with(
             'http://much.url.com/root/345', method='get', params={}
@@ -164,6 +172,7 @@ class ResourceRelTestCase(AioHTTPTestCase):
 
     @unittest_run_loop
     async def test_expands_uri_using_resource_data_and_params(self):
+        self.request.return_value = self.response
         await self.resource.rel('related', params={'related': 'something'})
         self.request.assert_called_with(
             'http://much.url.com/root/slug/something', method='get', params={}
@@ -171,6 +180,7 @@ class ResourceRelTestCase(AioHTTPTestCase):
 
     @unittest_run_loop
     async def test_extracts_expanded_params_from_the_uri(self):
+        self.request.return_value = self.response
         await self.resource.rel('item', params={'id': 345, 'fields': 'slug'})
         self.request.assert_called_with(
             'http://much.url.com/root/345',

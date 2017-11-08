@@ -257,7 +257,7 @@ class FromResponseTestCase(BaseTestCase):
 
     @unittest_run_loop
     async def test_should_return_resource_from_response(self):
-        self._response.json.return_value = {}
+        self._response.body = '{}'.encode('utf-8')
         returned_resource = self.resource_from_response(
             self._response, schema=self.schema)
         self.assertEqual(returned_resource.url, 'http://example.com')
@@ -265,7 +265,7 @@ class FromResponseTestCase(BaseTestCase):
 
     @unittest_run_loop
     async def test_should_return_resource_from_response_with_no_json_data(self):
-        self._response.json = Mock(side_effect=ValueError())
+        self._response.body = b"{-}"
         returned_resource = self.resource_from_response(
             self._response, schema=self.schema)
         self.assertEqual(returned_resource.url, 'http://example.com')
@@ -273,7 +273,7 @@ class FromResponseTestCase(BaseTestCase):
 
     @unittest_run_loop
     async def test_should_return_resource_from_response_with_response_data(self):
-        self._response.json.return_value = {}
+        self._response.body = '{}'.encode('utf-8')
         returned_resource = self.resource_from_response(
             self._response, schema=self.schema)
         self.assertEqual(returned_resource.response, self._response)

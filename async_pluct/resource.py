@@ -118,7 +118,7 @@ class Resource(object):
     @classmethod
     def from_response(cls, response, session, schema):
         try:
-            data = response.json()
+            data = json.loads(response.body)
         except ValueError:
             data = {}
         return cls.from_data(
