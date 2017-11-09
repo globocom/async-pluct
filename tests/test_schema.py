@@ -239,7 +239,11 @@ class SchemaPointerTestCase(AioHTTPTestCase):
     def assertValidRefs(self, schema, url=None, pointer=None):
         url = url or self.url
         pointer = pointer or self.pointer
-        href = '#'.join((url, pointer))
+
+        if len(pointer) > 1:
+            href = '#'.join((url, pointer))
+        else:
+            href = url
 
         self.assertEqual(schema.url, url)
         self.assertEqual(schema.pointer, pointer)

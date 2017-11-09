@@ -16,6 +16,8 @@ except ImportError:
             response = await self.request(method, url, **kwargs)
             async with response:
                 response.body = await response.read()
+                response.request = lambda: None
+                response.request.url = response.url
                 return response
 
     http_client = AioHttpClient

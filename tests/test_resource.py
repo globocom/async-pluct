@@ -100,23 +100,26 @@ class ResourceTestCase(BaseTestCase):
     def test_schema(self):
         self.assertEqual(self.schema.url, self.result.schema.url)
 
-    def test_is_valid_schema_error(self):
+    @unittest_run_loop
+    async def test_is_valid_schema_error(self):
         old = self.result.schema['required']
         try:
             self.result.schema['required'] = ["ble"]
-            self.assertFalse(self.result.is_valid())
+            self.assertFalse(await self.result.is_valid())
         finally:
             self.result.schema.required = old
 
-    def test_is_valid_invalid(self):
+    @unittest_run_loop
+    async def test_is_valid_invalid(self):
         data = {
             'doestnotexists': 'repos',
         }
         result = self.resource_from_data('/url', data=data, schema=self.schema)
-        self.assertFalse(result.is_valid())
+        self.assertFalse(await result.is_valid())
 
-    def test_is_valid(self):
-        self.assertTrue(self.result.is_valid())
+    @unittest_run_loop
+    async def test_is_valid(self):
+        self.assertTrue(await self.result.is_valid())
 
     def test_resolve_pointer(self):
         self.assertEqual(self.result.resolve_pointer("/name"), "repos")
@@ -130,7 +133,7 @@ class ResourceTestCase(BaseTestCase):
     @patch('async_pluct.resources.validate')
     @unittest_run_loop
     async def test_is_valid_call_validate_with_resolver_instance(self, mock_validate):
-        self.result.is_valid()
+        await self.result.is_valid()
         self.assertTrue(mock_validate.called)
 
         resolver = mock_validate.call_args[-1]['resolver']
@@ -247,7 +250,7 @@ class FromResponseTestCase(BaseTestCase):
         super(FromResponseTestCase, self).setUp()
 
         self._response = Mock()
-        self._response.url = 'http://example.com'
+        self._response.request.url = 'http://example.com'
 
         content_type = 'application/json; profile=http://example.com/schema'
         self._response.headers = {

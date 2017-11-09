@@ -5,7 +5,11 @@ from collections import UserDict
 from jsonpointer import resolve_pointer
 
 
-class Schema(UserDict, object):
+class ResolveAsyncSchemaError(Exception):
+    pass
+
+
+class Schema(UserDict):
 
     @staticmethod
     def __new__(cls, href, *args, **kwargs):
@@ -61,12 +65,18 @@ class Schema(UserDict, object):
 
     @property
     def data(self):
-        if self._data is None:
-            self._data = self.resolve()
+        if self._data is None and self._raw_schema is None:
+            raise ResolveAsyncSchemaError
+        if self._raw_schema is not None:
+            self._data = self.resolve_sync()
         return self._data
 
+    async def resolve_data(self):
+        if self._data is None:
+            self._data = await self.resolve()
+
     @property
-    def raw_schema(self):
+    async def raw_schema(self):
         return self._raw_schema
 
     @classmethod
@@ -79,13 +89,22 @@ class Schema(UserDict, object):
 
         return Schema(href, raw_schema=raw_schema, session=session)
 
-    def resolve(self):
-        data = resolve_pointer(self.raw_schema, self.pointer)
+    def resolve_sync(self):
+        if self._raw_schema is None:
+            raise ResolveAsyncSchemaError("resolve_sync")
+        data = resolve_pointer(self._raw_schema, self.pointer)
+        self.expand_refs(data)
+        return data
+
+    async def resolve(self):
+        raw_schema = await self.raw_schema
+        data = resolve_pointer(raw_schema, self.pointer)
         self.expand_refs(data)
         return data
 
     def get_link(self, name):
-        links = self.get('links') or []
+        data = self.data
+        links = data.get('links', [])
         for link in links:
             if link.get('rel') == name:
                 return link
@@ -103,7 +122,10 @@ class Schema(UserDict, object):
         if len(parts) > 1:
             pointer = parts[1] or pointer
 
-        href = '#'.join((url, pointer))
+        if len(pointer) > 1:
+            href = '#'.join((url, pointer))
+        else:
+            href = url
 
         return href, url, pointer
 

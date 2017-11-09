@@ -34,13 +34,14 @@ class Resource(object):
         response = await self.session.request(url)
         return json.loads(response.body)
 
-    def is_valid(self):
+    async def is_valid(self):
         handlers = {'https': self.session_request_json,
                     'http': self.session_request_json}
-        resolver = RefResolver.from_schema(self.schema.raw_schema,
+        schema = await self.schema.raw_schema
+        resolver = RefResolver.from_schema(schema,
                                            handlers=handlers)
         try:
-            validate(self.data, self.schema.raw_schema, resolver=resolver)
+            validate(self.data, schema, resolver=resolver)
         except (SchemaError, ValidationError):
             return False
         return True
@@ -95,6 +96,8 @@ class Resource(object):
 
     def expand_uri(self, name, **kwargs):
         link = self.schema.get_link(name)
+        if not link:
+            return None
         href = link.get('href', '')
 
         context = dict(self.data, **kwargs)
@@ -122,7 +125,7 @@ class Resource(object):
         except ValueError:
             data = {}
         return cls.from_data(
-            url=response.url,
+            url=response.request.url,
             data=data,
             session=session,
             schema=schema,
