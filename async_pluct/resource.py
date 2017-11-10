@@ -48,7 +48,7 @@ class Resource(object):
 
     async def rel(self, name, **kwargs):
         link = self.schema.get_link(name)
-        method = link.get('method', 'get').lower()
+        method = link.get('method', 'GET')
         href = link.get('href', '')
 
         params = kwargs.get('params', {})

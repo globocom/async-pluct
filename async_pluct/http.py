@@ -7,7 +7,7 @@ except ImportError:
 
     class AioHttpClient(ClientSession):
         async def fetch(self, url, **kwargs):
-            method = kwargs.pop('method', 'GET')
+            method = kwargs.pop('method', 'GET').lower()
             timeout = kwargs.pop('request_timeout', None)
 
             if timeout:

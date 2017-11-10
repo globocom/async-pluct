@@ -46,7 +46,7 @@ class Session(object):
         kwargs.setdefault('headers', {})
         kwargs['headers'].setdefault('content-type', 'application/json')
 
-        kwargs.setdefault('method', 'get')
+        kwargs.setdefault('method', 'GET')
 
         response = await self.client.fetch(url, **kwargs)
 
