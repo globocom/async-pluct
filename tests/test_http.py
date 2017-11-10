@@ -54,7 +54,7 @@ class BaseTestCase(AioHTTPTestCase):
         request_mock.return_value = future
 
         result = await self.my_client.fetch(url, **args)
-        request_mock.assert_called_with('GET', url, read_timeout='1000')
+        request_mock.assert_called_with('get', url, read_timeout='1000')
         self.assertEqual(result.body, b'mock content')
 
     @patch('async_pluct.http.AioHttpClient.request')
@@ -74,5 +74,5 @@ class BaseTestCase(AioHTTPTestCase):
         request_mock.return_value = future
 
         result = await self.my_client.fetch(url, **args)
-        request_mock.assert_called_with('GET', url, headers={'X-Request-ID': 20})
+        request_mock.assert_called_with('get', url, headers={'X-Request-ID': 20})
         self.assertEqual(result.body, b'mock content')

@@ -80,7 +80,7 @@ class ResourceRelTestCase(AioHTTPTestCase):
         await self.resource2.rel('create', data=self.resource2)
         self.request.assert_called_with(
             'http://much.url.com/root',
-            method='post',
+            method='POST',
             data=json.dumps(self.data),
             headers=self.response.headers
         )
@@ -117,7 +117,7 @@ class ResourceRelTestCase(AioHTTPTestCase):
         await self.resource.rel('create', data=self.resource)
         self.request.assert_called_with(
             'http://much.url.com/root',
-            method='post',
+            method='POST',
             data=json.dumps(self.data),
             headers={'content-type': 'application/json; profile=/schema'}
         )
@@ -128,7 +128,7 @@ class ResourceRelTestCase(AioHTTPTestCase):
         await self.resource.rel('create', data=self.resource, timeout=333)
         self.request.assert_called_with(
             'http://much.url.com/root',
-            method='post',
+            method='POST',
             data=json.dumps(self.data),
             headers={'content-type': 'application/json; profile=/schema'},
             timeout=333
@@ -141,7 +141,7 @@ class ResourceRelTestCase(AioHTTPTestCase):
         await self.resource.rel('create', data=resource)
         self.request.assert_called_with(
             'http://much.url.com/root',
-            method='post',
+            method='POST',
             data=json.dumps(resource),
             headers={'content-type': 'application/json'}
         )
@@ -151,7 +151,7 @@ class ResourceRelTestCase(AioHTTPTestCase):
         self.request.return_value = self.response
         await self.resource.rel('list')
         self.request.assert_called_with(
-            'http://much.url.com/root', method='get'
+            'http://much.url.com/root', method='GET'
         )
 
     @unittest_run_loop
@@ -159,7 +159,7 @@ class ResourceRelTestCase(AioHTTPTestCase):
         self.request.return_value = self.response
         await self.resource.rel('item')
         self.request.assert_called_with(
-            'http://much.url.com/root/123', method='get'
+            'http://much.url.com/root/123', method='GET'
         )
 
     @unittest_run_loop
@@ -167,7 +167,7 @@ class ResourceRelTestCase(AioHTTPTestCase):
         self.request.return_value = self.response
         await self.resource.rel('item', params={'id': 345})
         self.request.assert_called_with(
-            'http://much.url.com/root/345', method='get', params={}
+            'http://much.url.com/root/345', method='GET', params={}
         )
 
     @unittest_run_loop
@@ -175,7 +175,7 @@ class ResourceRelTestCase(AioHTTPTestCase):
         self.request.return_value = self.response
         await self.resource.rel('related', params={'related': 'something'})
         self.request.assert_called_with(
-            'http://much.url.com/root/slug/something', method='get', params={}
+            'http://much.url.com/root/slug/something', method='GET', params={}
         )
 
     @unittest_run_loop
@@ -184,5 +184,5 @@ class ResourceRelTestCase(AioHTTPTestCase):
         await self.resource.rel('item', params={'id': 345, 'fields': 'slug'})
         self.request.assert_called_with(
             'http://much.url.com/root/345',
-            method='get', params={'fields': 'slug'}
+            method='GET', params={'fields': 'slug'}
         )

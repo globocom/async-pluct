@@ -50,26 +50,26 @@ class SessionRequestsTestCase(AioHTTPTestCase):
     async def test_delegates_request_to_client(self):
         await self.session.request('/')
         self.mock_client.fetch.assert_called_with(
-            '/', method='get', headers=ANY)
+            '/', method='GET', headers=ANY)
 
     @unittest_run_loop
     async def test_uses_default_timeout(self):
         self.session.timeout = 333
         await self.session.request('/')
         self.mock_client.fetch.assert_called_with(
-            '/', method='get', request_timeout=333, headers=ANY)
+            '/', method='GET', request_timeout=333, headers=ANY)
 
     @unittest_run_loop
     async def test_allows_custom_timeout_per_request(self):
         await self.session.request('/', timeout=999)
         self.mock_client.fetch.assert_called_with(
-            '/', method='get', request_timeout=999, headers=ANY)
+            '/', method='GET', request_timeout=999, headers=ANY)
 
     @unittest_run_loop
     async def test_applies_json_content_type_header(self):
         await self.session.request('/')
         self.mock_client.fetch.assert_called_with(
-            '/', method='get',
+            '/', method='GET',
             headers={'content-type': 'application/json'})
 
     @unittest_run_loop
@@ -77,7 +77,7 @@ class SessionRequestsTestCase(AioHTTPTestCase):
         custom_headers = {'content-type': 'application/yaml'}
         await self.session.request('/', headers=custom_headers)
         self.mock_client.fetch.assert_called_with(
-            '/', method='get', headers=custom_headers)
+            '/', method='GET', headers=custom_headers)
 
     @unittest_run_loop
     async def test_returns_response(self):
