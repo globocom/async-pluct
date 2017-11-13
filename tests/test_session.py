@@ -129,6 +129,21 @@ class SessionResourceTestCase(AioHTTPTestCase):
         from_response.assert_called_with(
             response=self.response, session=self.session, schema='fake schema')
 
+    @patch('async_pluct.session.Resource.from_response')
+    @patch('async_pluct.session.LazySchema')
+    @unittest_run_loop
+    async def test_creates_resource_from_response_missing_profile(self, LazySchema, from_response):  # noqa
+        self.response.headers = {
+            'content-type': 'application/json'
+        }
+
+        await self.session.resource('/')
+
+        LazySchema.assert_not_called()
+
+        from_response.assert_called_with(
+            response=self.response, session=self.session, schema=None)
+
     @patch('async_pluct.session.Schema')
     @unittest_run_loop
     async def test_creates_schema_from_response(self, Schema):

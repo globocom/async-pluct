@@ -1,10 +1,12 @@
+import json
+
 from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
 from aiohttp import web
 
 from copy import deepcopy
 
-from unittest.mock import Mock, patch
-from async_pluct.schema import get_profile_from_header, LazySchema, Schema
+from asynctest import patch, Mock
+from async_pluct.schema import get_profile_from_header, LazySchema, Schema, ResolveAsyncSchemaError  # noqa
 from async_pluct.session import Session
 
 
@@ -56,16 +58,19 @@ class BaseLazySchemaTestCase(AioHTTPTestCase):
     HREF = '/schema'
     RAW_SCHEMA = SCHEMA
 
-    async def run(self, *args, **kwargs):
+    async def setUpAsync(self):
         self.session = Session()
         self.schema = LazySchema(self.HREF, session=self.session)
 
-        with patch.object(self.session, 'request') as self.request:
-            self.response = CoroutineMock()
-            self.response.body.return_value = deepcopy(self.RAW_SCHEMA)
-            self.request.return_value = self.response
+        self.response = Mock()
+        self.response.body = json.dumps(self.RAW_SCHEMA)
+        self.response.url = 'http://example.com/schema'
 
-            return super(BaseLazySchemaTestCase, self).run(*args, **kwargs)
+        self.request_mock = patch.object(self.session, 'request')
+        self.request = self.request_mock.start()
+
+    async def tearDownAsync(self):
+        self.request_mock.stop()
 
 
 class SchemaTestCase(AioHTTPTestCase):
@@ -97,6 +102,12 @@ class SchemaTestCase(AioHTTPTestCase):
     def test_schema_url(self):
         self.assertEqual(self.url, self.schema.url)
 
+    def test_schema_try_resolve_missing_raw_schema(self):
+        schema = Schema(self.url, session=self.session)
+
+        with self.assertRaises(ResolveAsyncSchemaError):
+            schema.resolve_sync()
+
     @unittest_run_loop
     async def test_session(self):
         self.assertIs(self.session, self.schema.session)
@@ -106,17 +117,38 @@ class LazySchemaTestCase(BaseLazySchemaTestCase):
 
     @unittest_run_loop
     async def test_loads_schema_once_accessing_data(self):
+        self.request.return_value = self.response
+
+        await self.schema.resolve_data()
         self.assertEqual(self.schema.data['title'], SCHEMA['title'])
+
+        await self.schema.resolve_data()
         self.assertEqual(self.schema.data['title'], SCHEMA['title'])
 
         self.request.assert_called_once_with('/schema')
 
     @unittest_run_loop
     async def test_loads_schema_once_accessing_raw_schema(self):
-        self.assertEqual(self.schema.raw_schema['title'], SCHEMA['title'])
-        self.assertEqual(self.schema.raw_schema['title'], SCHEMA['title'])
+        self.request.return_value = self.response
+
+        raw_schema = await self.schema.raw_schema
+        self.assertEqual(raw_schema['title'], SCHEMA['title'])
+
+        raw_schema = await self.schema.raw_schema
+        self.assertEqual(raw_schema['title'], SCHEMA['title'])
 
         self.request.assert_called_once_with('/schema')
+
+    @unittest_run_loop
+    async def test_loads_schema_with_args(self):
+        self.session.schema_args = {
+            'ttl': 1234
+        }
+        self.request.return_value = self.response
+
+        await self.schema.raw_schema
+
+        self.request.assert_called_once_with('/schema', ttl=1234)
 
     @unittest_run_loop
     async def test_url(self):
@@ -148,7 +180,7 @@ class CircularSchemaTestCase(AioHTTPTestCase):
 
 class LazyCircularSchemaTestCase(BaseLazySchemaTestCase):
 
-    HREF = '/schema#'
+    HREF = '/schema'
     RAW_SCHEMA = {
         'properties': {
             'inner': {'$ref': HREF},
@@ -195,6 +227,16 @@ class GetProfileFromHeaderTestCase(AioHTTPTestCase):
             'content-type': (
                 'application/json; charset=utf-8; profile="%s"'
                 % self.SCHEMA_URL)
+        }
+        url = get_profile_from_header(headers)
+        self.assertEqual(url, self.SCHEMA_URL)
+
+    @unittest_run_loop
+    async def test_should_return_original_profile_first(self):
+        headers = {
+            'content-type': (
+                'application/json; charset=utf-8; profile="%s?id=foo"; original-profile="%s"'  # noqa
+                % (self.SCHEMA_URL, self.SCHEMA_URL))
         }
         url = get_profile_from_header(headers)
         self.assertEqual(url, self.SCHEMA_URL)
@@ -315,8 +357,16 @@ class LazySchemaPointerTestCase(BaseLazySchemaTestCase):
 
     HREF = '/schema#/properties/name'
 
-    def test_applies_pointer_to_loaded_schema(self):
+    @unittest_run_loop
+    async def test_applies_pointer_to_loaded_schema(self):
+        self.request.return_value = self.response
+        await self.schema.resolve()
         self.assertEqual(self.schema, SCHEMA['properties']['name'])
+
+    @unittest_run_loop
+    async def test_raise_exception_when_not_loaded(self):
+        with self.assertRaises(ResolveAsyncSchemaError):
+            self.assertEqual(self.schema, SCHEMA['properties']['name'])
 
 
 class SchemaStoreMixinTestCase(object):

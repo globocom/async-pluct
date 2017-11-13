@@ -9,9 +9,10 @@ from async_pluct.schema import Schema, LazySchema, get_profile_from_header
 
 class Session(object):
 
-    def __init__(self, client=None, timeout=None):
+    def __init__(self, client=None, timeout=None, schema_args={}):
         self.timeout = timeout
         self.store = {}
+        self.schema_args = schema_args
 
         if client is None:
             self.client = http_client()

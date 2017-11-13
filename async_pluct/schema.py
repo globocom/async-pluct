@@ -65,9 +65,9 @@ class Schema(UserDict):
 
     @property
     def data(self):
-        if self._data is None and self._raw_schema is None:
-            raise ResolveAsyncSchemaError
-        if self._raw_schema is not None:
+        if self._data is None:
+            if self._raw_schema is None:
+                raise ResolveAsyncSchemaError
             self._data = self.resolve_sync()
         return self._data
 
@@ -141,7 +141,8 @@ class LazySchema(Schema):
     @property
     async def raw_schema(self):
         if self._raw_schema is None:
-            response = await self.session.request(self.url)
+            response = await self.session.request(self.url,
+                                                  **self.session.schema_args)
             self._raw_schema = json.loads(response.body)
         return self._raw_schema
 
@@ -159,5 +160,7 @@ def get_profile_from_header(headers):
     if 'profile' not in parameters:
         return None
 
-    schema_url = parameters['profile']
-    return schema_url
+    if 'original-profile' in parameters:
+        return parameters['original-profile']
+
+    return parameters.get('profile')
