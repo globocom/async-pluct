@@ -1,8 +1,16 @@
+import uritemplate
 import json
 
 from cgi import parse_header
 from collections import UserDict
 from jsonpointer import resolve_pointer
+
+try:
+    from urllib.parse import urlparse, urljoin
+except ImportError:
+    from urlparse import urlparse, urljoin
+
+import async_pluct
 
 
 class ResolveAsyncSchemaError(Exception):
@@ -109,6 +117,63 @@ class Schema(UserDict):
             if link.get('rel') == name:
                 return link
         return None
+
+    async def rel(self, name, **kwargs):
+        link = self.get_link(name)
+        method = link.get('method', 'GET')
+        href = link.get('href', '')
+
+        context = {}
+        params = kwargs.get('params', {})
+
+        if 'resource_params' in kwargs:
+            context.update(kwargs.pop('resource_params'))
+
+        context.update(params)
+
+        variables = uritemplate.variables(href)
+
+        uri = self.expand_uri(name, context)
+
+        if not urlparse(uri).netloc:
+            url = self.url
+            if 'url' in kwargs:
+                url = kwargs.pop('url')
+            uri = urljoin(url, uri)
+
+        if 'params' in kwargs:
+            unused_params = {
+                k: v for k, v in list(params.items()) if k not in variables}
+            kwargs['params'] = unused_params
+
+        if "data" in kwargs:
+            resource = kwargs.get("data")
+            headers = kwargs.get('headers', {})
+
+            if isinstance(resource, async_pluct.resource.Resource):
+                kwargs["data"] = json.dumps(resource.data)
+                headers.setdefault(
+                    'content-type',
+                    async_pluct.resource.get_content_type_for_resource(resource))  # noqa
+
+            elif isinstance(resource, dict):
+                kwargs["data"] = json.dumps(resource)
+                headers.setdefault('content-type', 'application/json')
+
+            kwargs['headers'] = headers
+
+        return await self.session.resource(uri, method=method, **kwargs)
+
+    def has_rel(self, name):
+        return bool(self.get_link(name))
+
+    def expand_uri(self, name, context):
+        link = self.get_link(name)
+        if not link:
+            return None
+        href = link.get('href', '')
+
+        return uritemplate.expand(href, context)
 
     def _init_href(self, href):
         (self.href, self.url, self.pointer) = self._split_href(href)

@@ -6,7 +6,7 @@ import json
 
 from copy import deepcopy
 
-from async_pluct.resource import Resource
+from async_pluct.resource import Resource, get_content_type_for_resource
 from async_pluct.schema import Schema
 from async_pluct.session import Session
 
@@ -87,14 +87,12 @@ class ResourceRelTestCase(AioHTTPTestCase):
 
     @unittest_run_loop
     async def test_get_content_type_for_resource_default(self):
-        content_type = self.resource._get_content_type_for_resource(
-            self.resource)
+        content_type = get_content_type_for_resource(self.resource)
         self.assertEqual(content_type, 'application/json; profile=/schema')
 
     @unittest_run_loop
     async def test_get_content_type_for_resource_with_response(self):
-        content_type = self.resource2._get_content_type_for_resource(
-            self.resource2)
+        content_type = get_content_type_for_resource(self.resource2)
         self.assertEqual(content_type, self.response.headers['content-type'])
 
     def test_expand_uri_returns_simple_link(self):

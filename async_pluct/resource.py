@@ -1,14 +1,7 @@
-import uritemplate
 import jsonpointer
 import json
 from collections import UserDict
 from collections import UserList
-
-
-try:
-    from urllib.parse import urlparse, urljoin
-except ImportError:
-    from urlparse import urlparse, urljoin
 
 from jsonschema import SchemaError, validate, ValidationError, RefResolver
 
@@ -46,63 +39,17 @@ class Resource(object):
             return False
         return True
 
-    async def rel(self, name, **kwargs):
-        link = self.schema.get_link(name)
-        method = link.get('method', 'GET')
-        href = link.get('href', '')
-
-        params = kwargs.get('params', {})
-
-        variables = uritemplate.variables(href)
-
-        uri = self.expand_uri(name, **params)
-
-        if not urlparse(uri).netloc:
-            uri = urljoin(self.url, uri)
-        if 'params' in kwargs:
-            unused_params = {
-                k: v for k, v in list(params.items()) if k not in variables}
-            kwargs['params'] = unused_params
-
-        if "data" in kwargs:
-            resource = kwargs.get("data")
-            headers = kwargs.get('headers', {})
-
-            if isinstance(resource, Resource):
-                kwargs["data"] = json.dumps(resource.data)
-                headers.setdefault(
-                    'content-type',
-                    self._get_content_type_for_resource(resource))
-
-            elif isinstance(resource, dict):
-                kwargs["data"] = json.dumps(resource)
-                headers.setdefault('content-type', 'application/json')
-
-            kwargs['headers'] = headers
-
-        return await self.session.resource(uri, method=method, **kwargs)
-
-    def _get_content_type_for_resource(self, resource):
-        response = resource.response
-        if (response and response.headers and
-                response.headers.get('content-type')):
-            return resource.response.headers['content-type']
-        else:
-            return 'application/json; profile=' + resource.schema.url
+    async def rel(self, link, **kwargs):
+        kwargs['url'] = self.url
+        kwargs['resource_params'] = self.data
+        return await self.schema.rel(link, **kwargs)
 
     def has_rel(self, name):
-        link = self.schema.get_link(name)
-        return bool(link)
+        return self.schema.has_rel(name)
 
     def expand_uri(self, name, **kwargs):
-        link = self.schema.get_link(name)
-        if not link:
-            return None
-        href = link.get('href', '')
-
         context = dict(self.data, **kwargs)
-
-        return uritemplate.expand(href, context)
+        return self.schema.expand_uri(name, context)
 
     @classmethod
     def from_data(cls, url, data=None, schema=None, session=None,
@@ -142,6 +89,15 @@ class Resource(object):
                               data=self.data[item],
                               schema=schema,
                               session=self.session)
+
+
+def get_content_type_for_resource(resource):
+    response = resource.response
+    if (response and response.headers and
+            response.headers.get('content-type')):
+        return resource.response.headers['content-type']
+    else:
+        return 'application/json; profile=' + resource.schema.url
 
 
 class ObjectResource(UserDict, Resource, dict):
