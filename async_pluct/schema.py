@@ -167,7 +167,7 @@ class Schema(UserDict):
     def has_rel(self, name):
         return bool(self.get_link(name))
 
-    def expand_uri(self, name, context):
+    def expand_uri(self, name, context={}):
         link = self.get_link(name)
         if not link:
             return None
