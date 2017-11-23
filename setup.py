@@ -27,6 +27,6 @@ setup(
         'jsonschema==2.6.0',
         'jsonpointer==1.14',
         'urllib3==1.22',
-        'yarl==0.14.2'
+        'yarl>=0.14.2'
     ],
 )
