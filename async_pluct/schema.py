@@ -162,6 +162,9 @@ class Schema(UserDict):
 
             kwargs['headers'] = headers
 
+        if 'url' in kwargs:
+            kwargs.pop('url')
+
         return await self.session.resource(uri, method=method, **kwargs)
 
     def has_rel(self, name):
