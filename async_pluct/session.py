@@ -19,6 +19,9 @@ class Session(object):
         else:
             self.client = client
 
+    async def close(self):
+        await self.client.close()
+
     async def resource(self, url, **kwargs):
         response = await self.request(url, **kwargs)
         schema = None
