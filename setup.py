@@ -22,7 +22,7 @@ setup(
     packages=find_packages(exclude=('tests.*', 'tests')),
     include_package_data=True,
     install_requires=[
-        'aiohttp==2.3.2',
+        'aiohttp>=2.3.2',
         'uritemplate==3.0.0',
         'jsonschema==2.6.0',
         'jsonpointer==1.14',
