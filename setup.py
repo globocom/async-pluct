@@ -26,7 +26,7 @@ setup(
         'uritemplate==3.0.0',
         'jsonschema==2.6.0',
         'jsonpointer==1.14',
-        'urllib3==1.22',
+        'urllib3==1.24.2',
         'yarl>=0.14.2'
     ],
 )
