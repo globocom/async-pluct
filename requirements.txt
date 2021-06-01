@@ -6,5 +6,5 @@ jsonpointer==1.14
 jsonschema==2.6.0
 multidict==3.3.2
 uritemplate==3.0.0
-urllib3==1.22
+urllib3==1.26.5
 yarl==0.14.2
